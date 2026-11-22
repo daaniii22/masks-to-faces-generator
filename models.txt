@@ -1,1 +1,2 @@
 Modelos usados para no tener que reentrenar: https://drive.google.com/drive/folders/1zuCErijNIT4tR9C5mtPw6pmC5kRbS1eF?usp=sharing
+Github con el desarrollo: https://github.com/daaniii22/masks-to-faces-generator

@@ -1,0 +1,29 @@
+De forma particular, la GAN condicional (gan_generator.ipynb) destaca por una inferencia instantánea (un único paso) y 
+un buen ajuste espacial gracias a la U-Net con skip connections y la pérdida combinada LSGAN + L1 + VGG16, consiguiendo 
+un FID de 48,15 en test (49,39 en caras nuevas) y un KID de 0,0420 ± 0,0010. Sin embargo, su entrenamiento requiere un 
+equilibrio complicado entre generador y discriminador, la calidad visual tiene techo pronto y, al ser determinista, 
+una misma máscara produce siempre la misma cara. 
+Por su parte, el modelo DiT (dit_generator.ipynb) demuestra que un Vision Transformer puro dentro del marco de difusión 
+supera a la GAN, bajando el FID a 30,52 (31,22 en caras nuevas) y el KID a 0,0192 ± 0,0007, y además introduce diversidad 
+al variar el ruido inicial. Aun así, al no contar con el sesgo convolucional ni skip connections, converge más despacio 
+y es más costoso por epoch e inferencia que la U-Net.
+
+El modelo de difusión con U-Net (diffusion_generator.ipynb) consigue con diferencia los mejores resultados: un FID de 15,31 
+en test y 15,51 en caras nuevas, junto a un KID de 0,0061 ± 0,0005 (0,0064 en caras nuevas), acercándose de forma notable al 
+suelo real de 7,64. Combinar convoluciones con Self-Attention en 16x16 y 8x8, entrenamiento DDPM con cosine schedule y 
+muestreo DDIM permitió además mejorar la calidad sin reentrenar mediante el ajuste de parámetros en inferencia 
+(DDIM con 100 pasos y eta = 1,0, donde el ruido añadido en cada salto evita errores de color e iluminación no solucionables). 
+Al poder variar únicamente la semilla de ruido inicial, genera infinitas caras distintas y nítidas con las mismas facciones.
+
+Como conclusión global, el proyecto nos deja dos conclusiones. Primero, para generación condicional en píxeles a 64x64 
+con un conjunto de datos mediano, la difusión supera claramente al enfoque adversarial en realismo y diversidad, y la 
+U-Net con atención sigue siendo más eficiente en datos y cómputo que un Transformer como DiT. En segundo lugar, las métricas 
+píxel a píxel (L1 y 1 - SSIM) deben interpretarse con cuidado en tareas ambiguas: la GAN obtiene mejor L1 que DiT y difusión 
+con U-Net no porque genere mejores caras, sino porque promedia colores y texturas de forma determinista, mientras que los 
+modelos de difusión proponen tonos distintos pero igual de válidos. De hecho, una posible hipótesis que no hemos podido 
+contrastar es que, puede ser que la diferencia en estas métricas venga marcada por el fondo, el cual en la GAN es mucho
+más promedio y borroso o soso que en los otros modelos. Al ser más ambiguo y tender a promediar, los resultados estadísticos
+son mejores.  
+Por ello, FID y KID reflejan mucho mejor la calidad percibida. Por último, la diferencia mínima entre el FID sobre máscaras 
+reales y sobre máscaras híbridas compuestas por varias personas en los tres modelos, confirma que las tres arquitecturas 
+generalizan y saben componer rasgos de distintas personas sin memorizar el conjunto de entrenamiento.
