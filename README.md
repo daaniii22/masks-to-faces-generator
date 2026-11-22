@@ -13,11 +13,9 @@ La arquitectura tiene que poder condicionarse con la máscara (GAN, modelos de d
 FID y KID con las características de Inception-v3, entre las caras generadas y caras reales. Cuanto menos, mejor.
 Siempre con máscaras de test, que el modelo no vio al entrenar. Los tres modelos se miden con 3.000 caras de test a color.
 Suelo: el FID entre dos grupos de caras reales (7,6). Es lo mejor que podría sacar un modelo perfecto.
-Los FID de la tabla son los de "caras nuevas": generadas a partir de las máscaras de test y comparadas con las caras reales de test.
+Los FID que damos son los de "caras nuevas": generadas a partir de las máscaras de test y comparadas con las caras reales de test.
 
 Los tres modelos que hemos realizado son:
-
-Resultados con 3.000 caras de test a color. El suelo (FID entre dos grupos de caras reales) es 7,6 en los tres casos:
 
 Difusión condicional con U-Net (DDPM + DDIM): FID 15,5 y KID 0,0064.
 GAN condicional con pérdida perceptual VGG: FID 49,4 y KID 0,043.
@@ -42,11 +40,16 @@ Cada bloque usa atención global (4 cabezas) y un MLP. El paso t entra por adaLN
 Se usan los pesos EMA de la mejor época en validación (la 70, FID de validación 50,6).
 
 Para generar se compararon varias configuraciones de DDIM en validación. La mejor fue 10 pasos con η = 0 (FID de validación 50,06), y es la que se usa en test.
-Con el mismo protocolo que los modelos , el DiT queda por detrás de su difusión con U-Net (31,2 frente a 15,5). Se planteó como una prueba de una arquitectura distinta, no como el modelo principal. Los dos no se diferencian solo en la red: el DiT usa EMA y otro muestreo (η = 0), y la U-Net no.
+Con el mismo protocolo que los dos modelos , el DiT queda por detrás de la difusión con U-Net (31,2 frente a 15,5). Se planteó como una prueba de una arquitectura distinta, no como el modelo principal. Los dos no se diferencian solo en la red: el DiT usa EMA y otro muestreo (η = 0), y la U-Net no.
 
 Qué hay en el repositorio
-diffusion_generator.ipynb: difusión con U-Net.
-gan_generator.ipynb: GAN con pérdida perceptual.
-dit_generator.ipynb: 
-models.txt: enlace a los modelos ya entrenados, para no reentrenar.
-Enunciado.pdf: enunciado de la práctica.
+
+-diffusion_generator.ipynb: difusión con U-Net.
+
+-gan_generator.ipynb: GAN con pérdida perceptual.
+
+-dit_generator.ipynb: DIT
+
+-models.txt: enlace a los modelos ya entrenados, para no reentrenar.
+
+-Enunciado.pdf: enunciado de la práctica.
