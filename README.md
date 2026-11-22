@@ -1,55 +1,52 @@
-# masks-to-faces-generator
+# Masks-to-Faces Generator
 
-Grupo 8 · Dani, David, Jiadong, Manuel y Brian.
+**Grupo 8** — Dani, David, Jiadong, Manuel y Brian.
 
-Hemos generado caras a partir de máscaras de segmentación con modelos entrenados desde cero.
+Generación condicional de caras RGB a partir de máscaras de segmentación facial utilizando tres arquitecturas generativas entrenadas **desde cero**: **Difusión con U-Net**, **GAN condicional (Pix2Pix + pérdida perceptual)** y **Difusión con Transformer (DiT)**.
 
+---
 
-Hemos partido del dataset CelebAMask-HQ, en el subconjunto de la asignatura: 30.000 caras a color de 64×64 y sus máscaras de segmentación de 8 clases (pelo, sombrero, orejas, ojos, nariz, boca).
-La entrada del modelo es una máscara y la salida una cara nueva que respete esa máscara.
-La arquitectura tiene que poder condicionarse con la máscara (GAN, modelos de difusión o transformers), entrenarse desde cero y sin fine-tuning.
+## Planteamiento y Dataset
 
-¿Como evaluamos?
-FID y KID con las características de Inception-v3, entre las caras generadas y caras reales. Cuanto menos, mejor.
-Siempre con máscaras de test, que el modelo no vio al entrenar. Los tres modelos se miden con 3.000 caras de test a color.
-Suelo: el FID entre dos grupos de caras reales (7,6). Es lo mejor que podría sacar un modelo perfecto.
-Los FID que damos son los de "caras nuevas": generadas a partir de las máscaras de test y comparadas con las caras reales de test.
+El proyecto parte de un subconjunto de **CelebAMask-HQ** compuesto por **30.000 imágenes RGB de 64×64** y sus correspondientes **máscaras de segmentación binarias de 8 clases**:
+* `hair` (pelo)
+* `hat` (sombrero)
+* `l_ear` / `r_ear` (orejas)
+* `l_eye` / `r_eye` (ojos)
+* `nose` (nariz)
+* `mouth` (boca)
 
-Los tres modelos que hemos realizado son:
+**Objetivo:** dada una máscara de segmentación de entrada, generar una cara realista y nueva que respete la geometría y posición de las facciones indicadas.
 
-Difusión condicional con U-Net (DDPM + DDIM): FID 15,5 y KID 0,0064.
-GAN condicional con pérdida perceptual VGG: FID 49,4 y KID 0,043.
-Difusión con DiT (Diffusion Transformer): FID 31,2 y KID 0,020.
-1. Difusión condicional con U-Net 
-Entrada: la imagen con ruido x_t concatenada con la máscara (64×64×11).
-U-Net con filtros 64·128·256·256, bloques residuales con GroupNorm + SiLU y atención de 4 cabezas en las resoluciones 16×16 y 8×8.
-Ruido: T = 1000 pasos con cosine schedule; el paso t pasa por un embedding sinusoidal y un MLP hasta 256 dimensiones, y se inyecta en cada bloque residual con FiLM (escala y desplazamiento).
-Pérdida: MSE sobre el ruido ε. 9,4 M de parámetros, 100 épocas.
-Generación con muestreo DDIM (η = 1). En validación, 100 pasos dieron FID 37,4 y 10 pasos 50,5.
-2. GAN condicional con pérdida perceptual 
-Generador: U-Net con filtros 64·128·256·512·512, InstanceNorm y upsampling bilineal + convolución 3×3.
-Discriminador: PatchGAN con Spectral Norm que da un mapa de 16×16.
-Pérdida del generador: 3·LSGAN + 20·L1 + 0,08·VGG16 (pérdida perceptual).
-13,2 M de parámetros, 30 épocas.
-3. Difusión con DiT 
-Misma difusión que la U-Net  (T = 1000, cosine schedule, pérdida MSE sobre ε, DDIM); solo cambia la red que predice el ruido, que pasa de convoluciones a un Transformer.
+---
 
-Sin encoder ni decoder ni skips: la entrada de 11 canales (imagen con ruido + 8 máscaras one-hot, que no reciben ruido) se divide en parches de 4×4 (patchify), lo que da 256 tokens de dimensión 256. Los tokens mantienen ese tamaño en los 8 bloques y al final se vuelven a juntar en una imagen de 64×64×3.
-Cada bloque usa atención global (4 cabezas) y un MLP. El paso t entra por adaLN-Zero: genera la escala, el desplazamiento y un gate que se inicializa a cero, así cada bloque empieza siendo la identidad. La posición de los parches se codifica con un embedding sin-cos 2D fijo.
-9,79 M de parámetros. AdamW (lr 2e-4, weight decay 1e-4) con cosine decay, batch de 64, hasta 100 épocas, y copia EMA de los pesos (0,999).
-Se usan los pesos EMA de la mejor época en validación (la 70, FID de validación 50,6).
+## Protocolo de Evaluación
 
-Para generar se compararon varias configuraciones de DDIM en validación. La mejor fue 10 pasos con η = 0 (FID de validación 50,06), y es la que se usa en test.
-Con el mismo protocolo que los dos modelos , el DiT queda por detrás de la difusión con U-Net (31,2 frente a 15,5). Se planteó como una prueba de una arquitectura distinta, no como el modelo principal. Los dos no se diferencian solo en la red: el DiT usa EMA y otro muestreo (η = 0), y la U-Net no.
+Para comparar los modelos de forma justa se sigue un protocolo común:
+* **Métricas:** **FID** (*Fréchet Inception Distance*) y **KID** (*Kernel Inception Distance*) calculados sobre las características de `Inception-v3`. En ambas métricas, **cuanto menor es el valor, mejor**.
+* **Conjunto de test:** todos los modelos se evalúan generando **3.000 caras nuevas** a partir de las máscaras de test y comparándolas frente a las 3.000 caras reales de test.
 
-Qué hay en el repositorio
+---
 
--diffusion_generator.ipynb: difusión con U-Net.
+## Arquitecturas Implementadas
 
--gan_generator.ipynb: GAN con pérdida perceptual.
+* 1. Difusión condicional con U-Net (`diffusion_generator.ipynb`)
+Modelo de difusión entrenado para predecir el ruido gaussiano $\epsilon$ añadido a la imagen en un paso temporal $t$.
 
--dit_generator.ipynb: DIT
+* 2. GAN condicional con pérdida perceptual (`gan_generator.ipynb`)
+Generación directa en un único paso hacia delante mediante entrenamiento adversarial condicionado a la máscara.
 
--models.txt: enlace a los modelos ya entrenados, para no reentrenar.
+* 3. Difusión con DiT — *Diffusion Transformer* (`dit_generator.ipynb`)
+Exploración que mantiene el mismo marco de difusión que la U-Net, pero reemplaza las convoluciones por un **Vision Transformer**.
 
--Enunciado.pdf: enunciado de la práctica.
+---
+
+## Estructura del Repositorio
+
+| Archivo | Descripción |
+| :--- | :--- |
+| `diffusion_generator.ipynb` | Entrenamiento y evaluación del modelo de difusión condicional con U-Net. |
+| `gan_generator.ipynb` | Entrenamiento y evaluación de la cGAN. |
+| `dit_generator.ipynb` | Entrenamiento y evaluación del modelo de difusión basado en Transformer (DiT). |
+| `models.txt` | Enlaces a los pesos preentrenados (para inferencia sin reentrenar) y al repositorio de GitHub. |
+| `Enunciado.pdf` | Enunciado de la práctica. |
