@@ -1,6 +1,6 @@
 # Masks-to-Faces Generator
 
-**Grupo 8** — Dani, David, Jiadong, Manuel y Brian.
+**Grupo 8** — Daniel, David, Jiadong, Manuel y Brian.
 
 Generación condicional de caras RGB a partir de máscaras de segmentación facial utilizando tres arquitecturas generativas entrenadas **desde cero**: **Difusión con U-Net**, **GAN condicional (Pix2Pix + pérdida perceptual)** y **Difusión con Transformer (DiT)**.
 
@@ -49,4 +49,6 @@ Exploración que mantiene el mismo marco de difusión que la U-Net, pero reempla
 | `gan_generator.ipynb` | Entrenamiento y evaluación de la cGAN. |
 | `dit_generator.ipynb` | Entrenamiento y evaluación del modelo de difusión basado en Transformer (DiT). |
 | `models.txt` | Enlaces a los pesos preentrenados (para inferencia sin reentrenar) y al repositorio de GitHub. |
+| `conclusiones.txt` | Conclusiones de la práctica. |
 | `Enunciado.pdf` | Enunciado de la práctica. |
+| `poster_A3.pdf` | Póster de la práctica. |
